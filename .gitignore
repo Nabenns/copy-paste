@@ -1,5 +1,8 @@
-node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
 .env
-database.json
-database.sqlite
-.DS_Store
+.venv
+env/
+venv/
+mapping.json
