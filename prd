@@ -1,0 +1,282 @@
+# Product Requirements Document (PRD)
+
+## 1. Ringkasan Produk
+
+Bot Discord ini berfungsi untuk **menyalin (clone) struktur dan aktivitas server Discord utama ke server clone** secara otomatis. Bot akan:
+
+* Menyalin struktur server (kategori, channel, role – opsional)
+* Membuat webhook otomatis di setiap channel server clone
+* Melakukan **mirroring real-time** semua pesan dari server utama ke server clone
+* Mendukung pengiriman **teks, gambar, video, file, embed, dan sticker**
+* Menyamakan **nama & avatar pengirim** melalui webhook
+
+Target penggunaan: monitoring, backup komunikasi, replikasi server komunitas, dan testing environment.
+
+---
+
+## 2. Tujuan & Masalah yang Diselesaikan
+
+### Masalah
+
+* Harus copy server secara manual
+* Tidak ada sinkronisasi pesan real-time
+* Nama pengirim tidak sama jika pakai bot biasa
+* Webhook harus dibuat satu-satu
+
+### Tujuan
+
+* Otomatis clone server utama ke server clone
+* Semua pesan termirror 1:1
+* Pengalaman di server clone semirip mungkin dengan server utama
+
+---
+
+## 3. Definisi Server
+
+* **Server Utama (Source Server)**: server asal
+* **Server Clone (Target Server)**: server tujuan mirroring
+
+Bot harus berada di **kedua server** dengan permission admin.
+
+---
+
+## 4. Fitur Utama
+
+### 4.1 Clone Struktur Server
+
+Saat bot dijalankan pertama kali:
+
+* Copy kategori
+* Copy channel text
+* Copy channel voice (opsional)
+* Menyamakan nama channel & urutan
+
+Catatan:
+
+* Channel ID berbeda, tapi mapping disimpan di database
+
+---
+
+### 4.2 Auto Webhook Generator
+
+Untuk setiap channel di server clone:
+
+* Bot otomatis membuat **1 webhook per channel**
+* Webhook disimpan dan di-mapping dengan channel utama
+
+Contoh mapping:
+
+```
+Server Utama #announce -> Server Clone #announce -> webhook_url
+```
+
+---
+
+### 4.3 Real-time Message Mirroring
+
+Bot akan mendengarkan event:
+
+* messageCreate
+* messageUpdate (opsional)
+* messageDelete (opsional)
+
+Yang dimirror:
+
+* Text message
+* Emoji
+* Mention (@user, @role – opsional)
+* Embed
+* Attachment (image, video, file)
+* Sticker
+
+---
+
+### 4.4 Sender Identity Mirroring (Webhook Identity)
+
+Webhook akan dikirim dengan:
+
+* **Username = username pengirim asli**
+* **Avatar = avatar pengirim asli**
+
+Sehingga di server clone terlihat seperti user asli yang mengirim.
+
+---
+
+### 4.5 Media & File Support
+
+Webhook harus mendukung:
+
+* Image (jpg, png, gif)
+* Video (mp4, webm)
+* File (pdf, zip, dll)
+* Multiple attachment dalam 1 pesan
+
+---
+
+### 4.6 Channel Auto Matching
+
+Jika:
+
+* Channel dengan nama sama sudah ada → gunakan channel tersebut
+* Channel belum ada → buat otomatis
+
+---
+
+## 5. Fitur Tambahan (Opsional / Phase 2)
+
+* Mirror edit pesan
+* Mirror delete pesan
+* Mirror thread
+* Mirror reply (quote reference)
+* Mirror reaction
+* Filter channel tertentu
+* Delay / rate limit control
+
+---
+
+## 6. Command Bot
+
+### 6.1 Setup
+
+```
+/setup
+```
+
+* Menentukan server utama
+* Menentukan server clone
+* Menyimpan konfigurasi
+
+---
+
+### 6.2 Start Mirroring
+
+```
+/start
+```
+
+* Clone struktur server
+* Generate webhook
+* Aktifkan listener
+
+---
+
+### 6.3 Stop Mirroring
+
+```
+/stop
+```
+
+* Matikan listener
+* Tidak menghapus webhook
+
+---
+
+### 6.4 Status
+
+```
+/status
+```
+
+* Menampilkan jumlah channel
+* Status webhook
+* Status listener
+
+---
+
+## 7. Permission yang Dibutuhkan Bot
+
+* Administrator ATAU:
+
+  * Manage Channels
+  * Manage Webhooks
+  * Read Messages
+  * Send Messages
+  * Embed Links
+  * Attach Files
+
+---
+
+## 8. Arsitektur Teknis
+
+### 8.1 Tech Stack
+
+* Node.js
+* discord.js v14
+* Database (SQLite / MongoDB / PostgreSQL)
+
+---
+
+### 8.2 Database Schema (Sederhana)
+
+**Servers**
+
+* source_server_id
+* clone_server_id
+
+**Channels**
+
+* source_channel_id
+* clone_channel_id
+* webhook_url
+
+---
+
+## 9. Flow Kerja Sistem
+
+1. Bot dijalankan
+2. Admin menjalankan `/setup`
+3. Admin menjalankan `/start`
+4. Bot clone struktur server
+5. Bot membuat webhook tiap channel
+6. Bot listen pesan di server utama
+7. Pesan dikirim ke webhook server clone
+
+---
+
+## 10. Edge Case & Error Handling
+
+* Jika webhook terhapus → recreate otomatis
+* Jika rate limit → queue message
+* Jika file terlalu besar → skip + log
+* Jika channel dihapus → recreate
+
+---
+
+## 11. Non-Functional Requirements
+
+* Low latency (<1 detik)
+* Stabil untuk server besar (100+ channel)
+* Logging error lengkap
+* Aman (token tidak bocor)
+
+---
+
+## 12. Risiko & Catatan Penting
+
+* Discord rate limit webhook
+* Tidak bisa meniru user ID asli (hanya nama & avatar)
+* Voice chat **tidak bisa dimirror isi suara**
+
+---
+
+## 13. KPI / Success Metrics
+
+* 100% channel berhasil dimirror
+* > 99% pesan terkirim sukses
+* Delay <1 detik
+
+---
+
+## 14. Scope yang TIDAK Termasuk
+
+* Mirror voice audio
+* Mirror DM
+* Mirror permission user secara detail
+
+---
+
+## 15. Kesimpulan
+
+Bot ini berfungsi sebagai **server mirroring automation tool** yang fokus pada kecepatan, kemiripan, dan kemudahan setup tanpa manual webhook.
+
+---
